@@ -1,16 +1,26 @@
 import React, { Component } from 'react';
+import styles from './App.module.css';
+import * as API from '../../services/api';
 import Searchbar from '../Searchbar/Searchbar';
 import ImageGallery from '../ImageGallery/ImageGallery';
 import Button from '../Button/Button';
 import Modal from '../Modal/Modal';
 import Loader from '../Loader/Loader';
-import styles from './App.module.css';
-import * as imagesAPI from '../../services/api';
+
+const mapper = items => {
+  return items.map(
+    ({ id: key, webformatURL: smallUrl, largeImageURL: largeUrl }) => ({
+      key,
+      smallUrl,
+      largeUrl,
+    }),
+  );
+};
 
 export default class App extends Component {
   state = {
     images: [],
-    query: '',
+    searchQuery: '',
     page: 1,
     modalImage: '',
     isLoading: false,
@@ -18,111 +28,64 @@ export default class App extends Component {
   };
 
   componentDidUpdate(prevProps, prevState) {
-    if (prevState.page !== this.state.page) {
-      this.getImagesData();
-    }
+    const { searchQuery, page } = this.state;
 
-    window.scrollTo({
-      top: document.documentElement.scrollHeight,
-      behavior: 'smooth',
-    });
+    if (prevState.page !== page || prevState.searchQuery !== searchQuery) {
+      this.getImagesData(searchQuery, page);
+    }
   }
 
-  handleQueryChange = event => {
-    const { value } = event.target;
-
-    this.setState({ query: value });
+  handleSearch = query => {
+    this.setState({ searchQuery: query, page: 1, images: [] });
   };
 
-  handleSubmitForm = event => {
-    event.preventDefault();
-    const { query, images } = this.state;
-
-    if (query === '') {
-      return;
-    }
-
-    if (images !== [] && images.length > 11) {
-      this.setState({
-        images: [],
-        page: 1,
-      });
-    } else {
-      this.getImagesData();
-    }
-  };
-
-  getImagesData = () => {
-    const { query, page } = this.state;
+  getImagesData = (query, page) => {
     this.setState({ isLoading: true });
 
-    imagesAPI
-      .fetchImages(query, page)
-      .then(response => {
-        if (response.ok) return response.json();
-        throw new Error(response.statusText);
+    API.getImages(query, page)
+      .then(({ data }) => {
+        this.setState(state => ({
+          images: state.images.concat(mapper(data.hits)),
+        }));
       })
-      .then(({ hits }) =>
-        this.setState({
-          images: [...this.state.images, ...hits],
-        }),
-      )
       .catch(console.log)
       .finally(() => this.setState({ isLoading: false }));
+  };
+
+  handleLoadButton = () => {
+    this.setState(state => ({
+      page: state.page + 1,
+    }));
+  };
+
+  openModal = key => {
+    const { images } = this.state;
+
+    const imageData = images.find(image => image.key === key);
+    const bigImage = imageData.largeUrl;
+
+    this.setState({ isModalOpen: true, modalImage: bigImage });
   };
 
   closeModal = () => {
     this.setState({ isModalOpen: false });
   };
 
-  openModal = id => {
-    const { images } = this.state;
-
-    const imageData = images.find(image => image.id === id);
-    const largeUrl = imageData.largeImageURL;
-
-    this.setState({ isModalOpen: true, modalImage: largeUrl });
-  };
-
-  handleLoadButton = () => {
-    const { query } = this.state;
-
-    if (query === '') {
-      return;
-    }
-
-    this.setState(state => ({
-      page: state.page + 1,
-    }));
-  };
-
   render() {
-    const { images, query, isLoading, isModalOpen, modalImage } = this.state;
+    const { images, isLoading, isModalOpen, modalImage } = this.state;
 
     return (
       <div className={styles.App}>
-        <Searchbar
-          query={query}
-          onChange={this.handleQueryChange}
-          onSubmit={this.handleSubmitForm}
-        />
+        <Searchbar onSubmit={this.handleSearch} />
         {isLoading && <Loader />}
-        {images.length ? (
-          <ImageGallery
-            images={images}
-            onOpenModal={this.openModal}
-            onCloseModal={this.closeModal}
-          />
-        ) : null}
-        {images.length ? (
-          <Button onClick={this.handleLoadButton} isLoading={isLoading} />
-        ) : null}
+        {!!images.length && (
+          <>
+            <ImageGallery images={images} onOpenModal={this.openModal} />
+            <Button onClick={this.handleLoadButton} isLoading={isLoading} />
+          </>
+        )}
         {isModalOpen && (
-          <Modal
-            onClose={this.closeModal}
-            onOpen={this.openModal}
-            modalImage={modalImage}
-          />
+          <Modal onCloseModal={this.closeModal} modalImage={modalImage} />
         )}
       </div>
     );

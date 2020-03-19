@@ -1,29 +1,50 @@
-import React from 'react';
-import styles from './Searchbar.module.css';
+import React, { Component } from 'react';
 import PropTypes from 'prop-types';
+import styles from './Searchbar.module.css';
 
-const Searchbar = ({ query, onChange, onSubmit }) => (
-  <header className={styles.Searchbar}>
-    <form className={styles.SearchForm} onSubmit={onSubmit}>
-      <button type="submit" className={styles.SearchFormButton}>
-        <span className={styles.SearchFormButtonLabel}>Search</span>
-      </button>
+export default class Searchbar extends Component {
+  static propTypes = {
+    onSubmit: PropTypes.func.isRequired,
+  };
 
-      <input
-        className={styles.SearchFormInput}
-        type="text"
-        value={query}
-        placeholder="Search images and photos"
-        onChange={onChange}
-      />
-    </form>
-  </header>
-);
+  state = {
+    value: '',
+  };
 
-Searchbar.propTypes = {
-  query: PropTypes.string.isRequired,
-  onChange: PropTypes.func.isRequired,
-  onSubmit: PropTypes.func.isRequired,
-};
+  handleChange = event => {
+    const { value } = event.target;
 
-export default Searchbar;
+    this.setState({ value: value });
+  };
+
+  handleSubmit = event => {
+    event.preventDefault();
+    const { value } = this.state;
+
+    this.props.onSubmit(value);
+
+    this.setState({ value: '' });
+  };
+
+  render() {
+    const { value } = this.state;
+
+    return (
+      <header className={styles.Searchbar}>
+        <form className={styles.SearchForm} onSubmit={this.handleSubmit}>
+          <button type="submit" className={styles.SearchFormButton}>
+            <span className={styles.SearchFormButtonLabel}>Search</span>
+          </button>
+
+          <input
+            value={value}
+            onChange={this.handleChange}
+            className={styles.SearchFormInput}
+            type="text"
+            placeholder="Search images and photos"
+          />
+        </form>
+      </header>
+    );
+  }
+}

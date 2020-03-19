@@ -1,23 +1,26 @@
 import React from 'react';
-import styles from './ImageGalleryItem.module.css';
 import PropTypes from 'prop-types';
+import styles from './ImageGalleryItem.module.css';
 
-const ImageGalleryItem = ({ id, webformatURL, onOpenModal }) => (
-  <div>
-    <li className={styles.ImageGalleryItem} key={id}>
-      <img
-        src={webformatURL}
-        alt=""
-        className={styles.Image}
-        onClick={() => onOpenModal(id)}
-      />
-    </li>
-  </div>
-);
+const ImageGalleryItem = ({ image: { key, smallUrl }, onOpenModal }) => {
+  return (
+    <div>
+      <li
+        key={key}
+        className={styles.ImageGalleryItem}
+        onClick={() => onOpenModal(key)}
+      >
+        <img src={smallUrl} alt="" className={styles.Image} />
+      </li>
+    </div>
+  );
+};
 
 ImageGalleryItem.propTypes = {
-  id: PropTypes.number.isRequired,
-  webformatURL: PropTypes.string,
+  image: PropTypes.shape({
+    key: PropTypes.number.isRequired,
+    smallUrl: PropTypes.string.isRequired,
+  }).isRequired,
   onOpenModal: PropTypes.func.isRequired,
 };
 
